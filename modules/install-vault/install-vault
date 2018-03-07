@@ -1,4 +1,5 @@
 #!/bin/bash
+# Strata modification to add support for S3 URLs
 # This script can be used to install Vault and its dependencies. This script has been tested with the following
 # operating systems:
 #
@@ -195,7 +196,13 @@ function install_binaries {
   local readonly run_vault_dest_path="$bin_dir/run-vault"
 
   log_info "Downloading Vault $version from $url to $download_path"
-  curl -o "$download_path" "$url"
+  # curl vs awscli depending on url format
+  if [[ $url =~ ^s3: ]]; then
+    aws s3 cp "$url" "$download_path"
+  else
+    curl -o "$download_path" "$url"
+  fi
+
   unzip -d /tmp "$download_path"
 
   log_info "Moving Vault binary to $vault_dest_path"
