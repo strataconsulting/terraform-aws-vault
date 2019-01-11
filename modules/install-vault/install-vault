@@ -230,8 +230,14 @@ function fetch_binary {
     download_url="https://releases.hashicorp.com/vault/${version}/vault_${version}_linux_amd64.zip"
   fi
 
+  if [[ $download_url =~ ^s3: ]]; then
+    download_cmd="aws s3 cp '$download_url' '$DOWNLOAD_PACKAGE_PATH'"
+  else
+    download_cmd="curl -o '$DOWNLOAD_PACKAGE_PATH' '$download_url' --location --silent --fail --show-error"
+  fi
+
   retry \
-    "curl -o '$DOWNLOAD_PACKAGE_PATH' '$download_url' --location --silent --fail --show-error" \
+    "$download_cmd" \
     "Downloading Vault to $DOWNLOAD_PACKAGE_PATH"
 }
 
@@ -244,15 +250,6 @@ function install_binary {
   local -r run_vault_dest_path="$bin_dir/run-vault"
 
   unzip -d /tmp "$DOWNLOAD_PACKAGE_PATH"
-  log_info "Downloading Vault $version from $url to $download_path"
-  # curl vs awscli depending on url format
-  if [[ $url =~ ^s3: ]]; then
-    aws s3 cp "$url" "$download_path"
-  else
-    curl -o "$download_path" "$url"
-  fi
-
-  unzip -d /tmp "$download_path"
 
   log_info "Moving Vault binary to $vault_dest_path"
   sudo mv "/tmp/vault" "$vault_dest_path"
